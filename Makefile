@@ -94,7 +94,7 @@ uninstall: manifests ## Uninstall CRDs from a cluster.
 	kubectl delete -k config/crd
 
 .PHONY: run
-run: container install ## Run the controller locally. This is for testing purposes only.
+run: install ## Run the controller locally. This is for testing purposes only.
 	@$(MAKE) docker-container TARGET_ARGS="--load"
 	@docker run --rm -it --net host -v $(PWD):/src -v $(KUBECONFIG):/root/.kube/config -e KUBECONFIG=/root/.kube/config $(REGISTRY_AND_USERNAME)/$(NAME):$(TAG)
 

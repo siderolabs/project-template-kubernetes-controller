@@ -38,7 +38,7 @@ ARG REGISTRY_AND_USERNAME
 ARG NAME
 ARG TAG
 RUN cd config/manager \
-  && kustomize edit set image ${REGISTRY_AND_USERNAME}/${NAME}:${TAG} \
+  && kustomize edit set image controller=${REGISTRY_AND_USERNAME}/${NAME}:${TAG} \
   && cd - \
   && kubectl kustomize config >/release.yaml
 FROM scratch AS release
