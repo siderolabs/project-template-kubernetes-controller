@@ -1,11 +1,11 @@
 # syntax = docker/dockerfile-upstream:1.1.4-experimental
 
-FROM golang:1.13 AS build
-ENV GO111MODULE on
-ENV GOPROXY https://proxy.golang.org
+## TODO: update to go 1.18, but doing so breaks the mods when the go install happens below.
+##       we'll troubleshoot that later. 
+FROM golang:1.17 AS build
 ENV CGO_ENABLED 0
 WORKDIR /tmp
-RUN go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5
+RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2
 WORKDIR /src
 COPY ./go.mod ./
 COPY ./go.sum ./
@@ -27,12 +27,15 @@ RUN controller-gen object:headerFile=./hack/boilerplate.go.txt paths="./..."
 FROM scratch AS generate
 COPY --from=generate-build /src/api /api
 
-FROM k8s.gcr.io/hyperkube:v1.17.0 AS release-build
+FROM ubuntu:22.04 AS release-build
 RUN apt update -y \
   && apt install -y curl \
-  && curl -LO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.4.0/kustomize_v3.4.0_linux_amd64.tar.gz \
-  && tar -xf kustomize_v3.4.0_linux_amd64.tar.gz -C /usr/local/bin \
-  && rm kustomize_v3.4.0_linux_amd64.tar.gz
+  && curl -LO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.7/kustomize_v4.5.7_linux_amd64.tar.gz \
+  && tar -xf kustomize_v4.5.7_linux_amd64.tar.gz -C /usr/local/bin \
+  && rm kustomize_v4.5.7_linux_amd64.tar.gz
+RUN curl -LO "https://dl.k8s.io/release/v1.24.3/bin/linux/amd64/kubectl" \
+  && chmod +x kubectl \
+  && mv kubectl /usr/local/bin/kubectl
 COPY ./config ./config
 ARG REGISTRY_AND_USERNAME
 ARG NAME
@@ -49,7 +52,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build GOOS=linux go build -ldflags
 RUN chmod +x /manager
 
 FROM scratch AS container
-COPY --from=docker.io/autonomy/ca-certificates:v0.1.0 / /
-COPY --from=docker.io/autonomy/fhs:v0.1.0 / /
+COPY --from=ghcr.io/siderolabs/ca-certificates:v1.2.0 / /
+COPY --from=ghcr.io/siderolabs/fhs:v1.2.0 / /
 COPY --from=binary /manager /manager
 ENTRYPOINT [ "/manager" ]
