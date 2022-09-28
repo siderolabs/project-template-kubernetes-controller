@@ -13,7 +13,6 @@ RUN go mod download
 RUN go mod verify
 COPY ./ ./
 RUN go list -mod=readonly all >/dev/null
-RUN ! go mod tidy -v 2>&1 | grep .
 
 FROM build AS manifests-build
 ARG NAME
